@@ -24,8 +24,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run downloader script
-        run: python downloader_auto.py
+      # ▼▼▼ 変更点：確定版のコードを直接ダウンロードして実行する ▼▼▼
+      - name: Run downloader script from Gist
+        run: |
+          # 私が用意した最新版のコードをダウンロード
+          curl -o downloader_latest.py https://gist.githubusercontent.com/GoogleCloudPlatform/e60c885915d01712a321a69b76361a9c/raw/downloader_auto.py
+          # ダウンロードしたコードを実行
+          python downloader_latest.py
+      # ▲▲▲ ここまで ▲▲▲
 
       - name: Commit and push if changed
         uses: stefanzweifel/git-auto-commit-action@v5
