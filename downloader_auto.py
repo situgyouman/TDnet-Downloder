@@ -128,10 +128,21 @@ def download_files(pdf_links, target_date):
 
     total_count = len(pdf_links)
     for i, item in enumerate(pdf_links):
-        # ▼▼▼ ファイル名の表題部分が長すぎる場合に省略する処理 ▼▼▼
-        title_for_filename = (item['title'][:100] + '…') if len(item['title']) > 100 else item['title']
+        # ▼▼▼ 変更点：ファイル名全体をチェックして長すぎる場合に省略するロジックに変更 ▼▼▼
         
-        filename = sanitize_filename(f"{item['date']}{item['time']}_{item['code']}_{item['name']}_{title_for_filename}.pdf")
+        # まず、ファイル名の元になる文字列をすべて結合する
+        base_filename = f"{item['date']}{item['time']}_{item['code']}_{item['name']}_{item['title']}"
+        
+        # ファイルシステムの上限を考慮して、全体の長さを200文字に制限する
+        max_len = 200
+        if len(base_filename) > max_len:
+            base_filename = base_filename[:max_len] + "…"
+
+        # 最後に、安全な文字に変換し、拡張子を付ける
+        filename = sanitize_filename(base_filename) + ".pdf"
+        
+        # ▲▲▲ ここまで ▲▲▲
+        
         save_path = os.path.join(save_dir, filename)
         
         print(f"[{i+1}/{total_count}] DL: {filename}")
