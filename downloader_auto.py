@@ -128,7 +128,7 @@ def download_files(pdf_links, target_date):
 
     total_count = len(pdf_links)
     for i, item in enumerate(pdf_links):
-        # ▼▼▼ 変更点：ファイル名の表題部分が長すぎる場合に省略する ▼▼▼
+        # ▼▼▼ ファイル名の表題部分が長すぎる場合に省略する処理 ▼▼▼
         title_for_filename = (item['title'][:100] + '…') if len(item['title']) > 100 else item['title']
         
         filename = sanitize_filename(f"{item['date']}{item['time']}_{item['code']}_{item['name']}_{title_for_filename}.pdf")
@@ -144,7 +144,7 @@ def download_files(pdf_links, target_date):
                     f.write(pdf_response.content)
                 time.sleep(0.5)
             except requests.RequestException as e:
-                print(f"  -> ダウンロード失敗: {filename} ({e}")
+                print(f"  -> ダウンロード失敗: {filename} ({e})")
         else:
             print(f"  -> スキップ (既存ファイル)")
 
