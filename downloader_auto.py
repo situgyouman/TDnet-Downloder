@@ -26,57 +26,41 @@ def get_disclosure_links(date):
     all_pdf_links = []
     page_num = 1
     date_str = date.strftime('%Y%m%d')
-
     print(f"--- {date.strftime('%Y年%m月%d日')} のデータ取得を開始します ---")
-
-    while True: # 全てのページを巡回するためのループ
+    while True:
         try:
             content_url = f"https://www.release.tdnet.info/inbs/I_list_{page_num:03d}_{date_str}.html"
-            
             print(f"[{page_num}ページ目] {content_url} にアクセスします...")
             response = requests.get(content_url, headers=HEADERS, timeout=30)
             response.raise_for_status()
-
             soup = BeautifulSoup(response.content, 'html.parser', from_encoding='MS932')
-            
             result_table = soup.find('table', id='main-list-table')
             if not result_table:
                 if page_num == 1: print("開示情報が見つかりませんでした。")
                 else: print("次のページは見つかりませんでした。情報の取得を完了します。")
                 break
-
             rows = result_table.find_all('tr')
             if not rows:
                 print("このページに開示情報はありませんでした。")
                 break
-            
             print(f"{len(rows)}件の情報を処理します...")
-
             for row in rows:
                 cells = row.find_all('td')
                 if len(cells) < 5: continue
-
                 time_str, code_str, company_name, title = [cells[i].get_text(strip=True) for i in range(4)]
-                
-                # 除外条件のチェック
                 if (company_name.startswith(('Ｅ－', 'Ｐ－', 'Ｒ－'))):
                     print(f"  -> スキップ (除外-社名): {company_name}")
                     continue
-                
                 title_upper = title.upper()
                 if ('上場投信' in title or 'ＥＴＦ' in title_upper or 'ETF' in title_upper or '上場ETN' in title or '訂正' in title):
                     print(f"  -> スキップ (除外-表題): {title}")
                     continue
-                
                 link_tag = cells[3].find('a', href=True)
                 if not link_tag: continue
-
                 pdf_full_url = urljoin(content_url, link_tag['href'])
                 all_pdf_links.append({"url": pdf_full_url, "date": date_str, "time": time_str.replace(':', ''), "code": code_str, "name": company_name, "title": title})
-            
             page_num += 1
             time.sleep(0.5)
-
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 404:
                 if page_num > 1: print("次のページは見つかりませんでした。情報の取得を完了します。")
@@ -86,7 +70,6 @@ def get_disclosure_links(date):
         except Exception as e:
             print(f"予期せぬエラー: {e}")
             break
-            
     return all_pdf_links
 
 def download_files(pdf_links, target_date):
@@ -94,26 +77,18 @@ def download_files(pdf_links, target_date):
     if not pdf_links:
         print("\nダウンロード対象のPDFが見つかりませんでした。")
         return
-
     save_dir = target_date.strftime('%y%m%d')
     print(f"\n合計 {len(pdf_links)}件のファイルをフォルダ '{save_dir}' にダウンロードします。")
-
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
         print(f"保存フォルダ '{save_dir}' を作成しました。")
-
-    total_count = len(pdf_links)
     for i, item in enumerate(pdf_links):
-        # ▼▼▼ forループの中の処理なので、ここから下のブロックはすべてインデント（字下げ）が必要です ▼▼▼
         safe_name = item['name'][:50]
         safe_title = item['title'][:80]
-        
         filename_base = f"{item['date']}{item['time']}_{item['code']}_{safe_name}_{safe_title}"
         filename = sanitize_filename(filename_base) + ".pdf"
-        
         save_path = os.path.join(save_dir, filename)
-        print(f"[{i+1}/{total_count}] DL: {filename}")
-
+        print(f"[{i+1}/{len(pdf_links)}] DL: {filename}")
         if not os.path.exists(save_path):
             try:
                 pdf_response = requests.get(item['url'], headers=HEADERS, timeout=30)
@@ -125,7 +100,6 @@ def download_files(pdf_links, target_date):
                 print(f"  -> ダウンロード失敗: {filename} ({e})")
         else:
             print(f"  -> スキップ (既存ファイル)")
-
     print("\n全ての処理が完了しました。")
 
 def main():
