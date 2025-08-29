@@ -41,10 +41,8 @@ def get_disclosure_links(date):
             
             result_table = soup.find('table', id='main-list-table')
             if not result_table:
-                if page_num == 1:
-                    print("開示情報が見つかりませんでした。")
-                else:
-                    print("次のページは見つかりませんでした。情報の取得を完了します。")
+                if page_num == 1: print("開示情報が見つかりませんでした。")
+                else: print("次のページは見つかりませんでした。情報の取得を完了します。")
                 break
 
             rows = result_table.find_all('tr')
@@ -58,56 +56,35 @@ def get_disclosure_links(date):
                 cells = row.find_all('td')
                 if len(cells) < 5: continue
 
-                time_str = cells[0].get_text(strip=True)
-                code_str = cells[1].get_text(strip=True)
-                company_name = cells[2].get_text(strip=True)
-                title = cells[3].get_text(strip=True)
+                time_str, code_str, company_name, title = [cells[i].get_text(strip=True) for i in range(4)]
                 
                 # 除外条件のチェック
-                if (company_name.startswith('Ｅ－') or 
-                    company_name.startswith('Ｐ－') or 
-                    company_name.startswith('Ｒ－')):
+                if (company_name.startswith(('Ｅ－', 'Ｐ－', 'Ｒ－'))):
                     print(f"  -> スキップ (除外-社名): {company_name}")
                     continue
                 
                 title_upper = title.upper()
-                if ('上場投信' in title or 
-                    'ＥＴＦ' in title_upper or 'ETF' in title_upper or 
-                    '上場ETN' in title or 
-                    '訂正' in title):
+                if ('上場投信' in title or 'ＥＴＦ' in title_upper or 'ETF' in title_upper or '上場ETN' in title or '訂正' in title):
                     print(f"  -> スキップ (除外-表題): {title}")
                     continue
                 
-                link_tag = cells[3].find('a')
-                if not link_tag or not link_tag.has_attr('href'): continue
+                link_tag = cells[3].find('a', href=True)
+                if not link_tag: continue
 
-                pdf_relative_url = link_tag['href']
-                pdf_full_url = urljoin(content_url, pdf_relative_url)
-                
-                all_pdf_links.append({
-                    "url": pdf_full_url,
-                    "date": date_str,
-                    "time": time_str.replace(':', ''),
-                    "code": code_str,
-                    "name": company_name,
-                    "title": title,
-                })
+                pdf_full_url = urljoin(content_url, link_tag['href'])
+                all_pdf_links.append({"url": pdf_full_url, "date": date_str, "time": time_str.replace(':', ''), "code": code_str, "name": company_name, "title": title})
             
             page_num += 1
             time.sleep(0.5)
 
         except requests.exceptions.HTTPError as e:
             if e.response.status_code == 404:
-                if page_num == 1:
-                    print("開示情報ページが見つかりませんでした。")
-                else:
-                    print("次のページは見つかりませんでした。情報の取得を完了します。")
-                break
-            else:
-                print(f"HTTPリクエスト中にエラーが発生しました: {e}")
-                break
+                if page_num > 1: print("次のページは見つかりませんでした。情報の取得を完了します。")
+                else: print("開示情報ページが見つかりませんでした。")
+            else: print(f"HTTPエラー: {e}")
+            break
         except Exception as e:
-            print(f"処理中に予期せぬエラーが発生しました: {e}")
+            print(f"予期せぬエラー: {e}")
             break
             
     return all_pdf_links
@@ -119,7 +96,6 @@ def download_files(pdf_links, target_date):
         return
 
     save_dir = target_date.strftime('%y%m%d')
-
     print(f"\n合計 {len(pdf_links)}件のファイルをフォルダ '{save_dir}' にダウンロードします。")
 
     if not os.path.exists(save_dir):
@@ -128,52 +104,4 @@ def download_files(pdf_links, target_date):
 
     total_count = len(pdf_links)
     for i, item in enumerate(pdf_links):
-        # ▼▼▼ 変更点：ファイル名全体をチェックして長すぎる場合に省略するロジックに変更 ▼▼▼
-        
-        # まず、ファイル名の元になる文字列をすべて結合する
-        base_filename = f"{item['date']}{item['time']}_{item['code']}_{item['name']}_{item['title']}"
-        
-        # ファイルシステムの上限を考慮して、全体の長さを200文字に制限する
-        max_len = 200
-        if len(base_filename) > max_len:
-            base_filename = base_filename[:max_len] + "…"
-
-        # 最後に、安全な文字に変換し、拡張子を付ける
-        filename = sanitize_filename(base_filename) + ".pdf"
-        
-        # ▲▲▲ ここまで ▲▲▲
-        
-        save_path = os.path.join(save_dir, filename)
-        
-        print(f"[{i+1}/{total_count}] DL: {filename}")
-
-        if not os.path.exists(save_path):
-            try:
-                pdf_response = requests.get(item['url'], headers=HEADERS, timeout=30)
-                pdf_response.raise_for_status()
-                with open(save_path, 'wb') as f:
-                    f.write(pdf_response.content)
-                time.sleep(0.5)
-            except requests.RequestException as e:
-                print(f"  -> ダウンロード失敗: {filename} ({e})")
-        else:
-            print(f"  -> スキップ (既存ファイル)")
-
-    print("\n全ての処理が完了しました。")
-
-
-def main():
-    """メイン処理（自動実行用）"""
-    print("TDnet Downloader (自動実行モード) を起動します。")
-    
-    # 日本標準時(JST)の現在時刻を取得
-    JST = timezone(timedelta(hours=+9), 'JST')
-    target_date = datetime.now(JST)
-    
-    print(f"本日 ({target_date.strftime('%Y年%m月%d日')}) のデータを取得します。")
-
-    links = get_disclosure_links(target_date)
-    download_files(links, target_date)
-
-if __name__ == "__main__":
-    main()
+        # ▼▼▼ 変更点：会社名と表題を、結合前にそれぞれ短縮
