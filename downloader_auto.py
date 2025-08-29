@@ -144,7 +144,7 @@ def download_files(pdf_links, target_date):
                     f.write(pdf_response.content)
                 time.sleep(0.5)
             except requests.RequestException as e:
-                print(f"  -> ダウンロード失敗: {filename} ({e})")
+                print(f"  -> ダウンロード失敗: {filename} ({e}")
         else:
             print(f"  -> スキップ (既存ファイル)")
 
