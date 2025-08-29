@@ -128,7 +128,10 @@ def download_files(pdf_links, target_date):
 
     total_count = len(pdf_links)
     for i, item in enumerate(pdf_links):
-        filename = sanitize_filename(f"{item['date']}{item['time']}_{item['code']}_{item['name']}_{item['title']}.pdf")
+        # ▼▼▼ 変更点：ファイル名の表題部分が長すぎる場合に省略する ▼▼▼
+        title_for_filename = (item['title'][:100] + '…') if len(item['title']) > 100 else item['title']
+        
+        filename = sanitize_filename(f"{item['date']}{item['time']}_{item['code']}_{item['name']}_{title_for_filename}.pdf")
         save_path = os.path.join(save_dir, filename)
         
         print(f"[{i+1}/{total_count}] DL: {filename}")
