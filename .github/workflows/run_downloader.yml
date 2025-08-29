@@ -24,11 +24,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # ▼▼▼ 変更点：確定版のコードを直接ダウンロードして実行する ▼▼▼
+      # ▼▼▼ 変更点：正しいURLに修正 ▼▼▼
       - name: Run downloader script from Gist
         run: |
-          # 私が用意した最新版のコードをダウンロード
-          curl -o downloader_latest.py https://gist.githubusercontent.com/GoogleCloudPlatform/e60c885915d01712a321a69b76361a9c/raw/downloader_auto.py
+          # 正しいURLから最新版のコードをダウンロード
+          curl -o downloader_latest.py https://gist.githubusercontent.com/GoogleCloudPlatform/225b60499b18337778b30e0173f40590/raw/downloader_auto.py
           # ダウンロードしたコードを実行
           python downloader_latest.py
       # ▲▲▲ ここまで ▲▲▲
