@@ -3,7 +3,6 @@ name: TDnet Daily Downloader
 on:
   workflow_dispatch:
   schedule:
-    # JST is UTC+9
     - cron: '31 6 * * 1-5' # 平日 15:31 JST
     - cron: '1 9 * * 1-5'  # 平日 18:01 JST
 
@@ -24,14 +23,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # ▼▼▼ 変更点：正しいURLに修正 ▼▼▼
-      - name: Run downloader script from Gist
-        run: |
-          # 正しいURLから最新版のコードをダウンロード
-          curl -o downloader_latest.py https://gist.githubusercontent.com/GoogleCloudPlatform/225b60499b18337778b30e0173f40590/raw/downloader_auto.py
-          # ダウンロードしたコードを実行
-          python downloader_latest.py
-      # ▲▲▲ ここまで ▲▲▲
+      - name: Run downloader script
+        run: python downloader_auto.py
 
       - name: Commit and push if changed
         uses: stefanzweifel/git-auto-commit-action@v5
