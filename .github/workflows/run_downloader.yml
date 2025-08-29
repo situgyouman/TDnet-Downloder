@@ -24,11 +24,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # ▼▼▼ デバッグ用のステップを追加 ▼▼▼
-      - name: Display script content for debugging
-        run: cat downloader_auto.py
-      # ▲▲▲ ここまで ▲▲▲
-
       - name: Run downloader script
         run: python downloader_auto.py
 
