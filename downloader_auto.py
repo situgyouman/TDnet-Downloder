@@ -104,4 +104,38 @@ def download_files(pdf_links, target_date):
 
     total_count = len(pdf_links)
     for i, item in enumerate(pdf_links):
-        # ▼▼▼ 変更点：会社名と表題を、結合前にそれぞれ短縮
+        # ▼▼▼ forループの中の処理なので、ここから下のブロックはすべてインデント（字下げ）が必要です ▼▼▼
+        safe_name = item['name'][:50]
+        safe_title = item['title'][:80]
+        
+        filename_base = f"{item['date']}{item['time']}_{item['code']}_{safe_name}_{safe_title}"
+        filename = sanitize_filename(filename_base) + ".pdf"
+        
+        save_path = os.path.join(save_dir, filename)
+        print(f"[{i+1}/{total_count}] DL: {filename}")
+
+        if not os.path.exists(save_path):
+            try:
+                pdf_response = requests.get(item['url'], headers=HEADERS, timeout=30)
+                pdf_response.raise_for_status()
+                with open(save_path, 'wb') as f:
+                    f.write(pdf_response.content)
+                time.sleep(0.5)
+            except requests.RequestException as e:
+                print(f"  -> ダウンロード失敗: {filename} ({e})")
+        else:
+            print(f"  -> スキップ (既存ファイル)")
+
+    print("\n全ての処理が完了しました。")
+
+def main():
+    """メイン処理（自動実行用）"""
+    print("TDnet Downloader (自動実行モード) を起動します。")
+    JST = timezone(timedelta(hours=+9), 'JST')
+    target_date = datetime.now(JST)
+    print(f"本日 ({target_date.strftime('%Y年%m月%d日')}) のデータを取得します。")
+    links = get_disclosure_links(target_date)
+    download_files(links, target_date)
+
+if __name__ == "__main__":
+    main()
